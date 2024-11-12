@@ -86,7 +86,7 @@ rt_err_t semaphore_generate(struct rt_semaphore *sem_ptr,
  * @param[in]      entry          线程入口函数的指针。
  * @param[in]      parameter      线程入口函数的参数。一般无需传参，为 `RT_NULL`
  * @param[in]      stack_addr     线程的栈地址。动态创建时传 `RT_NULL`。静态时可定义全局：`rt_uint8_t th_stack[size] = {0};`再传入th_stack的首地址
- * @param[in]      stack_size     线程栈大小。动态创建时传 `RT_NULL`。静态时可直接传入`sizeof(th2_stack)`
+ * @param[in]      stack_size     线程栈大小。动态创建时传入自定义大小（如1024等）。静态时可直接传入`sizeof(th_stack)`
  * @param[in]      priority       线程的优先级。
  * @param[in]      tick           线程的时间片。
  * @param[in]      is_dynamic     指示是否动态创建线程。
