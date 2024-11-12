@@ -43,7 +43,7 @@
  *        用户需在信号量不再使用时调用 `rt_sem_delete` 释放内存。
  *        而静态创建的信号量在使用完毕后调用 `rt_sem_detach`。
  */
-rt_err_t semaphore_generate(struct rt_semaphore *sem,
+rt_err_t semaphore_generate(struct rt_semaphore *sem_ptr,
                             const char *name,
                             rt_uint32_t initial_value,
                             rt_uint8_t flag,
@@ -51,8 +51,8 @@ rt_err_t semaphore_generate(struct rt_semaphore *sem,
 {
     if (is_dynamic)
     { // 动态创建
-        sem = rt_sem_create(name, initial_value, flag);
-        if (sem == RT_NULL)
+        sem_ptr = rt_sem_create(name, initial_value, flag);
+        if (sem_ptr == RT_NULL)
         {
             LOG_E("rt_sem_create failed..\n");
             return -ENOMEM;
@@ -63,13 +63,74 @@ rt_err_t semaphore_generate(struct rt_semaphore *sem,
     {
         // 静态创建
         int ret = RT_EOK;
-        ret = rt_sem_init(sem, name, initial_value, flag);
+        ret = rt_sem_init(sem_ptr, name, initial_value, flag);
         if (ret != RT_EOK)
         {
             LOG_E("rt_sem_init failed...\n");
             return ret;
         }
         LOG_D("rt_sem_init sccessed...\n");
+    }
+    return RT_EOK;
+}
+
+/**
+ * @brief  创建或初始化一个线程，支持动态和静态创建。
+ *
+ * @param[in,out]  th             指向要创建或初始化的线程控制块的指针。
+ *                                - 若 `is_dynamic` 为 `RT_FALSE`（静态创建），
+ *                                  则需传入已分配的线程控制块的地址。可定义全局：`struct rt_thread th;`
+ *                                - 若 `is_dynamic` 为 `RT_TRUE`（动态创建），
+ *                                  则传入 一个值`RT_NULL`的指针即可，内核将动态分配空间。可定义全局：`rt_thread_t th = RT_NULL;`
+ * @param[in]      name           线程的名称字符串。
+ * @param[in]      entry          线程入口函数的指针。
+ * @param[in]      parameter      线程入口函数的参数。一般无需传参，为 `RT_NULL`
+ * @param[in]      stack_addr     线程的栈地址。动态创建时传 `RT_NULL`。静态时可定义全局：`rt_uint8_t th_stack[size] = {0};`再传入th_stack的首地址
+ * @param[in]      stack_size     线程栈大小。动态创建时传 `RT_NULL`。静态时可直接传入`sizeof(th2_stack)`
+ * @param[in]      priority       线程的优先级。
+ * @param[in]      tick           线程的时间片。
+ * @param[in]      is_dynamic     指示是否动态创建线程。
+ *                                - `RT_TRUE`：动态创建线程，内核将分配内存。
+ *                                - `RT_FALSE`：静态创建线程，需提供有效的控制块地址和栈地址。
+ *
+ * @return `RT_EOK` 表示成功，其他错误代码表示失败：
+ *         - `-ENOMEM`：内存不足导致动态创建失败。
+ *         - 非 `RT_EOK`：静态创建失败。
+ *
+ * @note  若使用动态创建线程（`is_dynamic` 为 `RT_TRUE`），
+ *        用户需在线程不再使用时调用 `rt_thread_delete` 释放内存。
+ *        而静态创建的线程在使用完毕后无需调用销毁函数。
+ */
+rt_err_t thread_generate(struct rt_thread *th_ptr,
+                         const char *name,
+                         void (*entry)(void *parameter),
+                         void *parameter,
+                         void *stack_addr,
+                         rt_size_t stack_size,
+                         rt_uint8_t priority,
+                         rt_uint8_t tick,
+                         rt_bool_t is_dynamic)
+{
+    if (is_dynamic)
+    { // 动态创建
+        th_ptr = rt_thread_create(name, entry, parameter, stack_size, priority, tick);
+        if (th_ptr == RT_NULL)
+        {
+            LOG_E("rt_thread_create failed..\n");
+            return -ENOMEM;
+        }
+        LOG_D("rt_thread_create succeeded...\n");
+    }
+    else
+    {
+        // 静态创建
+        int ret = rt_thread_init(th_ptr, name, entry, parameter, stack_addr, stack_size, priority, tick);
+        if (ret != RT_EOK)
+        {
+            LOG_E("rt_thread_init failed...\n");
+            return ret;
+        }
+        LOG_D("rt_thread_init succeeded...\n");
     }
     return RT_EOK;
 }
