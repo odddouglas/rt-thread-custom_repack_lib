@@ -137,7 +137,6 @@ rt_err_t thread_generate(rt_thread_t *th_ptr,
     return RT_EOK;
 }
 
-<<<<<<< HEAD
 /**
  * @brief  创建或初始化一个互斥量，支持动态和静态创建。
  *
@@ -162,8 +161,7 @@ rt_err_t thread_generate(rt_thread_t *th_ptr,
  *        用户需在互斥量不再使用时调用 `rt_mutex_delete` 释放内存。
  *        而静态创建的互斥量在使用完毕后无需调用销毁函数。
  */
-=======
->>>>>>> 63cca61eb8ac2ddf56389d4502b1cfc79bebc74a
+
 rt_err_t mutex_generate(rt_mutex_t *mutex_ptr,
                         const char *name,
                         rt_uint8_t flag,
