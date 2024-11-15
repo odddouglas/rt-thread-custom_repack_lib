@@ -137,4 +137,57 @@ rt_err_t thread_generate(rt_thread_t *th_ptr,
     return RT_EOK;
 }
 
+/**
+ * @brief  创建或初始化一个互斥量，支持动态和静态创建。
+ *
+ * @param[in,out]  mutex_ptr      指向要创建或初始化的互斥量控制块的指针。
+ *                                - 若 `is_dynamic` 为 `RT_FALSE`（静态创建），
+ *                                  则需传入已分配的互斥量控制块的地址。可定义全局：`struct rt_mutex mutex;`
+ *                                - 若 `is_dynamic` 为 `RT_TRUE`（动态创建），
+ *                                  则传入一个值 `RT_NULL` 的指针，内核将动态分配内存。可定义全局：`rt_mutex_t mutex = RT_NULL;`
+ * @param[in]      name           互斥量的名称字符串。
+ * @param[in]      flag           互斥量的创建标志位，定义互斥量的行为特性：
+ *                                - `RT_IPC_FLAG_FIFO`：先进先出方式
+ *                                - `RT_IPC_FLAG_PRIO`：优先级方式
+ * @param[in]      is_dynamic     指示是否动态创建互斥量。
+ *                                - `RT_TRUE`：动态创建互斥量，内核将分配内存。
+ *                                - `RT_FALSE`：静态创建互斥量，需提供有效的控制块地址。
+ *
+ * @return `RT_EOK` 表示成功，其他错误代码表示失败：
+ *         - `-ENOMEM`：内存不足导致动态创建失败。
+ *         - 非 `RT_EOK`：静态创建失败。
+ *
+ * @note  若使用动态创建互斥量（`is_dynamic` 为 `RT_TRUE`），
+ *        用户需在互斥量不再使用时调用 `rt_mutex_delete` 释放内存。
+ *        而静态创建的互斥量在使用完毕后无需调用销毁函数。
+ */
+rt_err_t mutex_generate(rt_mutex_t *mutex_ptr,
+                        const char *name,
+                        rt_uint8_t flag,
+                        rt_bool_t is_dynamic)
+{
+    if (is_dynamic)
+    {
+        *mutex_ptr = rt_mutex_create(name, flag);
+        if (*mutex_ptr == RT_NULL)
+        {
+            LOG_E("rt_mutex_create failed..\n");
+            return -ENOMEM;
+        }
+        LOG_D("rt_mutex_create succeeded...\n");
+    }
+    else
+    {
+        int ret = RT_EOK;
+        ret = rt_mutex_init(*mutex_ptr, name, flag);
+        if (ret != RT_EOK)
+        {
+            LOG_E("rt_mutex_init failed...\n");
+            return ret;
+        }
+        LOG_D("rt_mutex_init succeeded...\n");
+    }
+    return RT_EOK;
+}
+
 #endif
