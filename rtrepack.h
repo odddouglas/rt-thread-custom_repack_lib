@@ -137,4 +137,33 @@ rt_err_t thread_generate(rt_thread_t *th_ptr,
     return RT_EOK;
 }
 
+rt_err_t mutex_generate(rt_mutex_t *mutex_ptr,
+                        const char *name,
+                        rt_uint8_t flag,
+                        rt_bool_t is_dynamic)
+{
+    if (is_dynamic)
+    {
+        *mutex_ptr = rt_mutex_create(name, flag);
+        if (*mutex_ptr == RT_NULL)
+        {
+            LOG_E("rt_mutex_create failed..\n");
+            return -ENOMEM;
+        }
+        LOG_D("rt_mutex_create succeeded...\n");
+    }
+    else
+    {
+        int ret = RT_EOK;
+        ret = rt_mutex_init(*mutex_ptr, name, flag);
+        if (ret != RT_EOK)
+        {
+            LOG_E("rt_mutex_init failed...\n");
+            return ret;
+        }
+        LOG_D("rt_mutex_init succeeded...\n");
+    }
+    return RT_EOK;
+}
+
 #endif
