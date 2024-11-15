@@ -10,6 +10,8 @@
 
 #ifndef __RT_REPACK_H__
 #define __RT_REPACK_H__
+#define DBG_TAG "main"
+#define DBG_LVL DBG_LOG
 
 #include <rtdbg.h>
 #include <board.h>
@@ -43,7 +45,7 @@
  *        用户需在信号量不再使用时调用 `rt_sem_delete` 释放内存。
  *        而静态创建的信号量在使用完毕后调用 `rt_sem_detach`。
  */
-rt_err_t semaphore_generate(struct rt_semaphore *sem_ptr,
+rt_err_t semaphore_generate(rt_sem_t *sem_ptr,
                             const char *name,
                             rt_uint32_t initial_value,
                             rt_uint8_t flag,
@@ -51,8 +53,8 @@ rt_err_t semaphore_generate(struct rt_semaphore *sem_ptr,
 {
     if (is_dynamic)
     { // 动态创建
-        sem_ptr = rt_sem_create(name, initial_value, flag);
-        if (sem_ptr == RT_NULL)
+        *sem_ptr = rt_sem_create(name, initial_value, flag);
+        if (*sem_ptr == RT_NULL)
         {
             LOG_E("rt_sem_create failed..\n");
             return -ENOMEM;
@@ -63,7 +65,7 @@ rt_err_t semaphore_generate(struct rt_semaphore *sem_ptr,
     {
         // 静态创建
         int ret = RT_EOK;
-        ret = rt_sem_init(sem_ptr, name, initial_value, flag);
+        ret = rt_sem_init(*sem_ptr, name, initial_value, flag);
         if (ret != RT_EOK)
         {
             LOG_E("rt_sem_init failed...\n");
@@ -101,7 +103,7 @@ rt_err_t semaphore_generate(struct rt_semaphore *sem_ptr,
  *        用户需在线程不再使用时调用 `rt_thread_delete` 释放内存。
  *        而静态创建的线程在使用完毕后无需调用销毁函数。
  */
-rt_err_t thread_generate(struct rt_thread *th_ptr,
+rt_err_t thread_generate(rt_thread_t *th_ptr,
                          const char *name,
                          void (*entry)(void *parameter),
                          void *parameter,
@@ -113,8 +115,8 @@ rt_err_t thread_generate(struct rt_thread *th_ptr,
 {
     if (is_dynamic)
     { // 动态创建
-        th_ptr = rt_thread_create(name, entry, parameter, stack_size, priority, tick);
-        if (th_ptr == RT_NULL)
+        *th_ptr = rt_thread_create(name, entry, parameter, stack_size, priority, tick);
+        if (*th_ptr == RT_NULL)
         {
             LOG_E("rt_thread_create failed..\n");
             return -ENOMEM;
@@ -124,7 +126,7 @@ rt_err_t thread_generate(struct rt_thread *th_ptr,
     else
     {
         // 静态创建
-        int ret = rt_thread_init(th_ptr, name, entry, parameter, stack_addr, stack_size, priority, tick);
+        int ret = rt_thread_init(*th_ptr, name, entry, parameter, stack_addr, stack_size, priority, tick);
         if (ret != RT_EOK)
         {
             LOG_E("rt_thread_init failed...\n");
