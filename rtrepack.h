@@ -23,7 +23,7 @@
 /**
  * @brief  创建或初始化一个信号量，支持动态和静态创建。
  *
- * @param[in,out]  sem            指向要创建或初始化的信号量控制块的指针。
+ * @param[in,out]  sem_ptr        指向要创建或初始化的信号量控制块的指针。
  *                                - 若 `is_dynamic` 为 `RT_FALSE`（静态创建），
  *                                  则需传入已分配的信号量控制块的地址。可定义全局：`struct rt_semaphore sem;`
  *                                - 若 `is_dynamic` 为 `RT_TRUE`（动态创建），
@@ -45,11 +45,11 @@
  *        用户需在信号量不再使用时调用 `rt_sem_delete` 释放内存。
  *        而静态创建的信号量在使用完毕后调用 `rt_sem_detach`。
  */
-rt_err_t semaphore_generate(rt_sem_t *sem_ptr,
-                            const char *name,
-                            rt_uint32_t initial_value,
-                            rt_uint8_t flag,
-                            rt_bool_t is_dynamic)
+rt_err_t semaphore_generator(rt_sem_t *sem_ptr,
+                             const char *name,
+                             rt_uint32_t initial_value,
+                             rt_uint8_t flag,
+                             rt_bool_t is_dynamic)
 {
     if (is_dynamic)
     { // 动态创建
@@ -79,7 +79,7 @@ rt_err_t semaphore_generate(rt_sem_t *sem_ptr,
 /**
  * @brief  创建或初始化一个线程，支持动态和静态创建。
  *
- * @param[in,out]  th             指向要创建或初始化的线程控制块的指针。
+ * @param[in,out]   th_ptr         指向要创建或初始化的线程控制块的指针。
  *                                - 若 `is_dynamic` 为 `RT_FALSE`（静态创建），
  *                                  则需传入已分配的线程控制块的地址。可定义全局：`struct rt_thread th;`
  *                                - 若 `is_dynamic` 为 `RT_TRUE`（动态创建），
@@ -103,15 +103,15 @@ rt_err_t semaphore_generate(rt_sem_t *sem_ptr,
  *        用户需在线程不再使用时调用 `rt_thread_delete` 释放内存。
  *        而静态创建的线程在使用完毕后无需调用销毁函数。
  */
-rt_err_t thread_generate(rt_thread_t *th_ptr,
-                         const char *name,
-                         void (*entry)(void *parameter),
-                         void *parameter,
-                         void *stack_addr,
-                         rt_size_t stack_size,
-                         rt_uint8_t priority,
-                         rt_uint8_t tick,
-                         rt_bool_t is_dynamic)
+rt_err_t thread_generator(rt_thread_t *th_ptr,
+                          const char *name,
+                          void (*entry)(void *parameter),
+                          void *parameter,
+                          void *stack_addr,
+                          rt_size_t stack_size,
+                          rt_uint8_t priority,
+                          rt_uint8_t tick,
+                          rt_bool_t is_dynamic)
 {
     if (is_dynamic)
     { // 动态创建
@@ -162,10 +162,10 @@ rt_err_t thread_generate(rt_thread_t *th_ptr,
  *        而静态创建的互斥量在使用完毕后无需调用销毁函数。
  */
 
-rt_err_t mutex_generate(rt_mutex_t *mutex_ptr,
-                        const char *name,
-                        rt_uint8_t flag,
-                        rt_bool_t is_dynamic)
+rt_err_t mutex_generator(rt_mutex_t *mutex_ptr,
+                         const char *name,
+                         rt_uint8_t flag,
+                         rt_bool_t is_dynamic)
 {
     if (is_dynamic)
     {
@@ -187,6 +187,60 @@ rt_err_t mutex_generate(rt_mutex_t *mutex_ptr,
             return ret;
         }
         LOG_D("rt_mutex_init succeeded...\n");
+    }
+    return RT_EOK;
+}
+
+/**
+ * @brief  创建或初始化一个事件集，支持动态和静态创建。
+ *
+ * @param[in,out]  event_ptr      指向要创建或初始化的事件集控制块的指针。
+ *                                - 若 `is_dynamic` 为 `RT_FALSE`（静态创建），
+ *                                  则需传入已分配的事件集控制块的地址。可定义全局：`struct rt_event event;`
+ *                                - 若 `is_dynamic` 为 `RT_TRUE`（动态创建），
+ *                                  则传入一个值 `RT_NULL` 的指针，内核将动态分配内存。可定义全局：`rt_event_t event = RT_NULL;`
+ * @param[in]      name           事件集的名称字符串。
+ * @param[in]      flag           事件集的创建标志位，定义事件集的行为特性：
+ *                                - `RT_IPC_FLAG_FIFO`：先进先出方式
+ *                                - `RT_IPC_FLAG_PRIO`：优先级方式
+ * @param[in]      is_dynamic     指示是否动态创建事件集。
+ *                                - `RT_TRUE`：动态创建事件集，内核将分配内存。
+ *                                - `RT_FALSE`：静态创建事件集，需提供有效的控制块地址。
+ *
+ * @return `RT_EOK` 表示成功，其他错误代码表示失败：
+ *         - `-ENOMEM`：内存不足导致动态创建失败。
+ *         - 非 `RT_EOK`：静态创建失败。
+ *
+ * @note  若使用动态创建事件集（`is_dynamic` 为 `RT_TRUE`），
+ *        用户需在事件集不再使用时调用 `rt_event_delete` 释放内存。
+ *        而静态创建的事件集在使用完毕后无需调用销毁函数。
+ */
+
+rt_err_t event_generator(rt_event_t *event_ptr,
+                         const char *name,
+                         rt_uint8_t flag,
+                         rt_bool_t is_dynamic)
+{
+    if (is_dynamic)
+    {
+        *event_ptr = rt_event_create(name, flag);
+        if (*event_ptr == RT_NULL)
+        {
+            LOG_E("rt_event_create failed...\n");
+            return -ENOMEM;
+        }
+        LOG_D("rt_event_create succeeded...\n");
+    }
+    else
+    {
+        int ret = RT_EOK;
+        ret = rt_event_init(*event_ptr, name, flag);
+        if (ret != RT_EOK)
+        {
+            LOG_E("rt_event_init failed...\n");
+            return ret;
+        }
+        LOG_D("rt_event_init succeeded...\n");
     }
     return RT_EOK;
 }
