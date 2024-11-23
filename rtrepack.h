@@ -302,4 +302,63 @@ rt_err_t mailbox_generator(rt_mailbox_t *mb_ptr,
     return RT_EOK;
 }
 
+/**
+ * @brief 创建或初始化一个邮件队列，支持动态和静态创建。
+ *
+ * @param[in,out] mq_ptr         指向要创建或初始化的邮件队列控制块的指针。
+ *                               - 若 `is_dynamic` 为 `RT_FALSE`（静态创建），
+ *                                 则需传入已分配的邮件队列控制块地址。可定义全局：`struct rt_mq mq;`
+ *                               - 若 `is_dynamic` 为 `RT_TRUE`（动态创建），
+ *                                 则传入一个值 `RT_NULL` 的指针，内核将动态分配内存。可定义全局：`rt_mq_t mq = RT_NULL;`
+ * @param[in]     name           邮件队列名称。
+ * @param[in]     msgpool        消息池指针，静态创建时由用户分配，动态创建时传入 `RT_NULL`。
+ * @param[in]     msg_size       单个消息的大小（字节数）。
+ * @param[in]     pool_size      消息池的大小（字节数）。对于静态创建，需由用户确保其大小为 `msg_size * max_msgs`。
+ * @param[in]     flag           邮件队列标志，支持 `RT_IPC_FLAG_FIFO` 或 `RT_IPC_FLAG_PRIO`。
+ * @param[in]     is_dynamic     指示是否动态创建邮件队列。
+ *                               - `RT_TRUE`：动态创建邮件队列，内核将分配内存。
+ *                               - `RT_FALSE`：静态创建邮件队列，需提供有效的控制块地址和消息池。
+ *
+ * @return `RT_EOK` 表示成功，其他错误代码表示失败：
+ *         - `-ENOMEM`：内存不足导致动态创建失败。
+ *         - 非 `RT_EOK`：静态创建失败。
+ *
+ * @note 若使用动态创建邮件队列（`is_dynamic` 为 `RT_TRUE`），
+ *       用户需在邮件队列不再使用时调用 `rt_mq_delete` 释放内存。
+ *       而静态创建的邮件队列在使用完毕后无需调用销毁函数。
+ */
+rt_err_t messagequeue_generator(rt_mq_t *mq_ptr,
+                                const char *name,
+                                void *msgpool,
+                                rt_size_t msg_size,
+                                rt_size_t pool_size,
+                                rt_uint8_t flag,
+                                rt_bool_t is_dynamic)
+{
+    if (is_dynamic)
+    {
+        // 动态创建
+        *mq_ptr = rt_mq_create(name, msg_size, pool_size, flag);
+        if (*mq_ptr == RT_NULL)
+        {
+            LOG_E("rt_mq_create failed...\n");
+            return -ENOMEM;
+        }
+        LOG_D("rt_mq_create succeeded...\n");
+    }
+    else
+    {
+        // 静态初始化
+        int ret = RT_EOK;
+        ret = rt_mq_init(*mq_ptr, name, msgpool, msg_size, pool_size, flag);
+        if (ret != RT_EOK)
+        {
+            LOG_E("rt_mq_init failed...\n");
+            return ret;
+        }
+        LOG_D("rt_mq_init succeeded...\n");
+    }
+    return RT_EOK;
+}
+
 #endif
